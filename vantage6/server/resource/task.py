@@ -164,7 +164,7 @@ class Task(Resource):
                 if org.get("id")==organization.id].pop()
 
             if isinstance(input_, dict):
-                input_ = json.dumps(input_).encode(STRING_ENCODING)
+                input_ = json.dumps(input_)#.encode(STRING_ENCODING)
 
             result = db.Result(
                 task=task,
@@ -271,4 +271,3 @@ class TaskResult(Resource):
             return {"msg": "task id={} not found".format(id)}, HTTPStatus.NOT_FOUND
 
         return self.task_result_schema.dump(task.results, many=True).data, HTTPStatus.OK
-
