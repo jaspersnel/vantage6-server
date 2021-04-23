@@ -8,6 +8,7 @@ from sqlalchemy.orm.exc import NoResultFound
 
 from vantage6.server.controller.fixture import load
 from vantage6.server.model.base import Database
+from vantage6.server.model.base import Database
 from vantage6.server.globals import PACAKAGE_FOLDER, APPNAME
 
 from vantage6.server.model import (
@@ -18,7 +19,9 @@ from vantage6.server.model import (
     Result,
     Node,
     Rule,
-    Role
+    Role,
+    Member,
+    collaboration
 )
 from vantage6.server.model.rule import Scope, Operation
 
@@ -49,14 +52,17 @@ class TestBaseModel(unittest.TestCase):
 class TestUserModel(TestBaseModel):
 
     def test_relations(self):
-        organization = self.entities.get("organizations")[0]
-        user = organization.get("users")[0]
+        organization = self.entities.get("Organization")[0]
+        user = [usr for usr in self.entities.get("User") \
+            if usr.get("organization_id") ==  organization.get("id")][0]
         db_user = User.get_by_username(user.get("username"))
         self.assertEqual(db_user.organization.name, organization["name"])
 
     def test_read(self):
-        for org in self.entities.get("organizations"):
-            for user in org.get("users"):
+        for org in self.entities.get("Organization"):
+            users = [usr for usr in self.entities.get("User") \
+                if usr.get("organization_id") == org.get("id")]
+            for user in users:
                 db_user = User.get_by_username(user["username"])
                 self.assertEqual(db_user.username, user["username"])
                 self.assertEqual(db_user.firstname, user["firstname"])
@@ -79,7 +85,7 @@ class TestUserModel(TestBaseModel):
 
     def test_methods(self):
         """"Test model methods."""
-        user = self.entities.get("organizations")[0].get("users")[0]
+        user = self.entities.get("User")[0]
         assert User.get_by_username(user.get("username"))
         assert User.username_exists(user.get("username"))
         assert User.get_user_list()
@@ -96,7 +102,7 @@ class TestUserModel(TestBaseModel):
 class TestCollaborationModel(TestBaseModel):
 
     def test_read(self):
-        for col in self.entities.get("collaborations"):
+        for col in self.entities.get("Collaboration"):
             db_collaboration = Collaboration.find_by_name(col.get("name"))
             self.assertEqual(db_collaboration.name, col.get("name"))
 
@@ -168,7 +174,7 @@ class TestNodeModel(TestBaseModel):
 class TestOrganizationModel(TestBaseModel):
 
     def test_read(self):
-        for organization in self.entities.get("organizations"):
+        for organization in self.entities.get("Organization"):
             org = Organization.get_by_name(organization.get("name"))
             self.assertEqual(org.name, organization.get("name"))
             self.assertEqual(org.domain, organization.get("domain"))
@@ -177,7 +183,9 @@ class TestOrganizationModel(TestBaseModel):
             self.assertEqual(org.zipcode, str(organization.get("zipcode")))
             self.assertEqual(org.country, organization.get("country"))
 
-            for user in organization.get("users"):
+            users = [usr for usr in self.entities.get("User") \
+                if usr.get("organization_id") == organization.get("id")]
+            for user in users:
                 db_user = User.get_by_username(user.get("username"))
                 self.assertIsNotNone(db_user)
                 self.assertEqual(
@@ -201,7 +209,7 @@ class TestOrganizationModel(TestBaseModel):
         self.assertEqual(db_org, org)
 
     def test_methods(self):
-        name = self.entities.get("organizations")[0].get("name")
+        name = self.entities.get("Organization")[0].get("name")
         self.assertIsNotNone(Organization.get_by_name(name))
 
     def test_relations(self):
@@ -312,14 +320,14 @@ class TestRuleModel(TestBaseModel):
         for rule in rules:
             self.assertIsInstance(rule, Rule)
 
-    # def test_insert(self):
-    #     rule = Rule(
-    #         name="unittest",
-    #         description="A unittest rule",
-    #         scope=Scope.OWN,
-    #         operation=Operation.CREATE
-    #     )
-    #     rule.save()
+    def test_insert(self):
+        rule = Rule(
+            name="unittest",
+            description="A unittest rule",
+            scope=Scope.OWN,
+            operation=Operation.CREATE
+        )
+        rule.save()
 
     def test_methods(self):
 
